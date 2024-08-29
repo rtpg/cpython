@@ -970,29 +970,37 @@ dummy_func(
         }
 
         inst(GET_AWAITABLE, (iterable -- iter)) {
-            iter = _PyCoro_GetAwaitableIter(iterable);
+            // HACK AND WRONG
+            if ((tstate->context != NULL) && ((PyContext*)tstate->context)->ctx_async_eager > 0) {
+                // we are eager! instead of doing anything else we jump forward
+                iter = iterable;
+                // 7 is done entirely by looking at the result
+                JUMPBY(7);
+            } else {
+                iter = _PyCoro_GetAwaitableIter(iterable);
 
-            if (iter == NULL) {
-                _PyEval_FormatAwaitableError(tstate, Py_TYPE(iterable), oparg);
-            }
-
-            DECREF_INPUTS();
-
-            if (iter != NULL && PyCoro_CheckExact(iter)) {
-                PyObject *yf = _PyGen_yf((PyGenObject*)iter);
-                if (yf != NULL) {
-                    /* `iter` is a coroutine object that is being
-                       awaited, `yf` is a pointer to the current awaitable
-                       being awaited on. */
-                    Py_DECREF(yf);
-                    Py_CLEAR(iter);
-                    _PyErr_SetString(tstate, PyExc_RuntimeError,
-                                     "coroutine is being awaited already");
-                    /* The code below jumps to `error` if `iter` is NULL. */
+                if (iter == NULL) {
+                    _PyEval_FormatAwaitableError(tstate, Py_TYPE(iterable), oparg);
                 }
-            }
 
-            ERROR_IF(iter == NULL, error);
+                DECREF_INPUTS();
+
+                if (iter != NULL && PyCoro_CheckExact(iter)) {
+                    PyObject *yf = _PyGen_yf((PyGenObject*)iter);
+                    if (yf != NULL) {
+                        /* `iter` is a coroutine object that is being
+                        awaited, `yf` is a pointer to the current awaitable
+                        being awaited on. */
+                        Py_DECREF(yf);
+                        Py_CLEAR(iter);
+                        _PyErr_SetString(tstate, PyExc_RuntimeError,
+                                        "coroutine is being awaited already");
+                        /* The code below jumps to `error` if `iter` is NULL. */
+                    }
+                }
+
+                ERROR_IF(iter == NULL, error);
+            }
         }
 
         family(SEND, INLINE_CACHE_ENTRIES_SEND) = {
@@ -3983,28 +3991,38 @@ dummy_func(
         }
 
         inst(RETURN_GENERATOR, (-- res)) {
-            assert(PyFunction_Check(frame->f_funcobj));
-            PyFunctionObject *func = (PyFunctionObject *)frame->f_funcobj;
-            PyGenObject *gen = (PyGenObject *)_Py_MakeCoro(func);
-            if (gen == NULL) {
-                ERROR_NO_POP();
+
+            /* _PyErr_SetString(state, PyExc_SystemError, "You tried to run a generator"); */
+            /* ERROR_IF(true, error); */
+            // printf("I AM IN RETURN_GENERATOR\n");
+            // HACK AND WRONG
+            if ((tstate->context != NULL) && ((PyContext*)tstate->context)->ctx_async_eager > 0) {
+                // we are eager! instead of doing anything else we just move forward
+                res = Py_None;
+            } else {
+                assert(PyFunction_Check(frame->f_funcobj));
+                PyFunctionObject *func = (PyFunctionObject *)frame->f_funcobj;
+                PyGenObject *gen = (PyGenObject *)_Py_MakeCoro(func);
+                if (gen == NULL) {
+                    ERROR_NO_POP();
+                }
+                assert(EMPTY());
+                _PyFrame_SetStackPointer(frame, stack_pointer);
+                _PyInterpreterFrame *gen_frame = (_PyInterpreterFrame *)gen->gi_iframe;
+                frame->instr_ptr++;
+                _PyFrame_Copy(frame, gen_frame);
+                assert(frame->frame_obj == NULL);
+                gen->gi_frame_state = FRAME_CREATED;
+                gen_frame->owner = FRAME_OWNED_BY_GENERATOR;
+                _Py_LeaveRecursiveCallPy(tstate);
+                res = (PyObject *)gen;
+                _PyInterpreterFrame *prev = frame->previous;
+                _PyThreadState_PopFrame(tstate, frame);
+                frame = tstate->current_frame = prev;
+                LOAD_IP(frame->return_offset);
+                LOAD_SP();
+                LLTRACE_RESUME_FRAME();
             }
-            assert(EMPTY());
-            _PyFrame_SetStackPointer(frame, stack_pointer);
-            _PyInterpreterFrame *gen_frame = (_PyInterpreterFrame *)gen->gi_iframe;
-            frame->instr_ptr++;
-            _PyFrame_Copy(frame, gen_frame);
-            assert(frame->frame_obj == NULL);
-            gen->gi_frame_state = FRAME_CREATED;
-            gen_frame->owner = FRAME_OWNED_BY_GENERATOR;
-            _Py_LeaveRecursiveCallPy(tstate);
-            res = (PyObject *)gen;
-            _PyInterpreterFrame *prev = frame->previous;
-            _PyThreadState_PopFrame(tstate, frame);
-            frame = tstate->current_frame = prev;
-            LOAD_IP(frame->return_offset);
-            LOAD_SP();
-            LLTRACE_RESUME_FRAME();
         }
 
         inst(BUILD_SLICE, (start, stop, step if (oparg == 3) -- slice)) {

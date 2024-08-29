@@ -2,6 +2,10 @@
 preserve
 [clinic start generated code]*/
 
+#if defined(Py_BUILD_CORE) && !defined(Py_BUILD_CORE_MODULE)
+#  include "pycore_gc.h"          // PyGC_Head
+#  include "pycore_runtime.h"     // _Py_ID()
+#endif
 #include "pycore_modsupport.h"    // _PyArg_CheckPositional()
 
 PyDoc_STRVAR(_contextvars_Context_get__doc__,
@@ -37,6 +41,80 @@ _contextvars_Context_get(PyContext *self, PyObject *const *args, Py_ssize_t narg
     default_value = args[1];
 skip_optional:
     return_value = _contextvars_Context_get_impl(self, key, default_value);
+
+exit:
+    return return_value;
+}
+
+PyDoc_STRVAR(_contextvars_Context_get_async_eager__doc__,
+"get_async_eager($self, /)\n"
+"--\n"
+"\n");
+
+#define _CONTEXTVARS_CONTEXT_GET_ASYNC_EAGER_METHODDEF    \
+    {"get_async_eager", (PyCFunction)_contextvars_Context_get_async_eager, METH_NOARGS, _contextvars_Context_get_async_eager__doc__},
+
+static PyObject *
+_contextvars_Context_get_async_eager_impl(PyContext *self);
+
+static PyObject *
+_contextvars_Context_get_async_eager(PyContext *self, PyObject *Py_UNUSED(ignored))
+{
+    return _contextvars_Context_get_async_eager_impl(self);
+}
+
+PyDoc_STRVAR(_contextvars_Context_set_async_eager__doc__,
+"set_async_eager($self, /, value)\n"
+"--\n"
+"\n");
+
+#define _CONTEXTVARS_CONTEXT_SET_ASYNC_EAGER_METHODDEF    \
+    {"set_async_eager", _PyCFunction_CAST(_contextvars_Context_set_async_eager), METH_FASTCALL|METH_KEYWORDS, _contextvars_Context_set_async_eager__doc__},
+
+static PyObject *
+_contextvars_Context_set_async_eager_impl(PyContext *self, int value);
+
+static PyObject *
+_contextvars_Context_set_async_eager(PyContext *self, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+{
+    PyObject *return_value = NULL;
+    #if defined(Py_BUILD_CORE) && !defined(Py_BUILD_CORE_MODULE)
+
+    #define NUM_KEYWORDS 1
+    static struct {
+        PyGC_Head _this_is_not_used;
+        PyObject_VAR_HEAD
+        PyObject *ob_item[NUM_KEYWORDS];
+    } _kwtuple = {
+        .ob_base = PyVarObject_HEAD_INIT(&PyTuple_Type, NUM_KEYWORDS)
+        .ob_item = { &_Py_ID(value), },
+    };
+    #undef NUM_KEYWORDS
+    #define KWTUPLE (&_kwtuple.ob_base.ob_base)
+
+    #else  // !Py_BUILD_CORE
+    #  define KWTUPLE NULL
+    #endif  // !Py_BUILD_CORE
+
+    static const char * const _keywords[] = {"value", NULL};
+    static _PyArg_Parser _parser = {
+        .keywords = _keywords,
+        .fname = "set_async_eager",
+        .kwtuple = KWTUPLE,
+    };
+    #undef KWTUPLE
+    PyObject *argsbuf[1];
+    int value;
+
+    args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 1, 1, 0, argsbuf);
+    if (!args) {
+        goto exit;
+    }
+    value = PyObject_IsTrue(args[0]);
+    if (value < 0) {
+        goto exit;
+    }
+    return_value = _contextvars_Context_set_async_eager_impl(self, value);
 
 exit:
     return return_value;
@@ -179,4 +257,4 @@ PyDoc_STRVAR(_contextvars_ContextVar_reset__doc__,
 
 #define _CONTEXTVARS_CONTEXTVAR_RESET_METHODDEF    \
     {"reset", (PyCFunction)_contextvars_ContextVar_reset, METH_O, _contextvars_ContextVar_reset__doc__},
-/*[clinic end generated code: output=b667826178444c3f input=a9049054013a1b77]*/
+/*[clinic end generated code: output=0064499bd24ed0d9 input=a9049054013a1b77]*/

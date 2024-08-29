@@ -2555,6 +2555,8 @@ error:
 #define IS_GENERATOR(CF) \
     ((CF) & (CO_GENERATOR | CO_COROUTINE | CO_ASYNC_GENERATOR))
 
+#define IS_COROUTINE(CF) \
+    ((CF) & CO_COROUTINE)
 static int
 insert_prefix_instructions(_PyCompile_CodeUnitMetadata *umd, basicblock *entryblock,
                            int *fixed, int nfreevars, int code_flags)
@@ -2571,7 +2573,7 @@ insert_prefix_instructions(_PyCompile_CodeUnitMetadata *umd, basicblock *entrybl
         location loc = LOCATION(umd->u_firstlineno, umd->u_firstlineno, -1, -1);
         cfg_instr make_gen = {
             .i_opcode = RETURN_GENERATOR,
-            .i_oparg = 0,
+            .i_oparg = IS_COROUTINE(code_flags) ? 1 : 0,
             .i_loc = loc,
             .i_target = NULL,
         };

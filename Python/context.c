@@ -46,7 +46,7 @@ static PyContext *
 context_new_empty(void);
 
 static PyContext *
-context_new_from_vars(PyHamtObject *vars);
+context_new_from_vars(PyHamtObject *vars, int async_eager);
 
 static inline PyContext *
 context_get(void);
@@ -93,7 +93,7 @@ PyContext_Copy(PyObject * octx)
 {
     ENSURE_Context(octx, NULL)
     PyContext *ctx = (PyContext *)octx;
-    return (PyObject *)context_new_from_vars(ctx->ctx_vars);
+    return (PyObject *)context_new_from_vars(ctx->ctx_vars, ctx->ctx_async_eager);
 }
 
 
@@ -105,7 +105,7 @@ PyContext_CopyCurrent(void)
         return NULL;
     }
 
-    return (PyObject *)context_new_from_vars(ctx->ctx_vars);
+    return (PyObject *)context_new_from_vars(ctx->ctx_vars, ctx->ctx_async_eager);
 }
 
 
@@ -366,6 +366,7 @@ _context_alloc(void)
     ctx->ctx_vars = NULL;
     ctx->ctx_prev = NULL;
     ctx->ctx_entered = 0;
+    ctx->ctx_async_eager = 0;
     ctx->ctx_weakreflist = NULL;
 
     return ctx;
@@ -392,7 +393,7 @@ context_new_empty(void)
 
 
 static PyContext *
-context_new_from_vars(PyHamtObject *vars)
+context_new_from_vars(PyHamtObject *vars, int async_eager)
 {
     PyContext *ctx = _context_alloc();
     if (ctx == NULL) {
@@ -402,6 +403,8 @@ context_new_from_vars(PyHamtObject *vars)
     ctx->ctx_vars = (PyHamtObject*)Py_NewRef(vars);
 
     _PyObject_GC_TRACK(ctx);
+
+    ctx->ctx_async_eager = async_eager;
     return ctx;
 }
 
@@ -588,6 +591,35 @@ _contextvars_Context_get_impl(PyContext *self, PyObject *key,
 
 
 /*[clinic input]
+_contextvars.Context.get_async_eager
+
+[clinic start generated code]*/
+
+static PyObject *
+_contextvars_Context_get_async_eager_impl(PyContext *self)
+/*[clinic end generated code: output=5101912f61b9f55c input=3fff210bb466e4de]*/
+{
+    if (self->ctx_async_eager != 0) {
+        Py_RETURN_TRUE;
+    } else {
+        Py_RETURN_FALSE;
+    }
+}
+/*[clinic input]
+_contextvars.Context.set_async_eager
+    value: bool
+
+[clinic start generated code]*/
+
+static PyObject *
+_contextvars_Context_set_async_eager_impl(PyContext *self, int value)
+/*[clinic end generated code: output=f1c4a5229af8807f input=f13af2acb1626362]*/
+{
+    printf("Yes.\n");
+    self->ctx_async_eager = value;
+    Py_RETURN_NONE;
+}
+/*[clinic input]
 _contextvars.Context.items
 
 Return all variables and their values in the context object.
@@ -641,7 +673,7 @@ static PyObject *
 _contextvars_Context_copy_impl(PyContext *self)
 /*[clinic end generated code: output=30ba8896c4707a15 input=ebafdbdd9c72d592]*/
 {
-    return (PyObject *)context_new_from_vars(self->ctx_vars);
+    return (PyObject *)context_new_from_vars(self->ctx_vars, self->ctx_async_eager);
 }
 
 
@@ -679,6 +711,8 @@ static PyMethodDef PyContext_methods[] = {
     _CONTEXTVARS_CONTEXT_KEYS_METHODDEF
     _CONTEXTVARS_CONTEXT_VALUES_METHODDEF
     _CONTEXTVARS_CONTEXT_COPY_METHODDEF
+    _CONTEXTVARS_CONTEXT_GET_ASYNC_EAGER_METHODDEF
+    _CONTEXTVARS_CONTEXT_SET_ASYNC_EAGER_METHODDEF
     {"run", _PyCFunction_CAST(context_run), METH_FASTCALL | METH_KEYWORDS, NULL},
     {NULL, NULL}
 };

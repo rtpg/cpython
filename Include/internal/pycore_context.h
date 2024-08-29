@@ -28,6 +28,10 @@ struct _pycontextobject {
     PyHamtObject *ctx_vars;
     PyObject *ctx_weakreflist;
     int ctx_entered;
+    // XXX boolean instead?
+    // Also, really should this just be stored
+    // as a context variable?
+    int ctx_async_eager;
 };
 
 
